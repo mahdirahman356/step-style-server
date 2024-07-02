@@ -27,6 +27,7 @@ async function run() {
     const database = client.db("ShoesDB");
     const shoesCollection = database.collection("shoes");
     const usersCollection = database.collection("users");
+    const ordersCollection = database.collection("orders");
     
     // Shoes related
     app.get("/shoes", async(req, res) => {
@@ -75,6 +76,33 @@ async function run() {
 
         const result = await usersCollection.updateOne(filter, updateDoc, options)
         res.send(result)
+    })
+
+    // Order related
+    app.get("/order", async(req, res) => {
+        const result = await ordersCollection.find().toArray()
+        res.send(result)
+    })
+
+    app.get("/order/email/:email", async(req, res) => {
+         const email = req.params.email
+         const orderEmail = {email: email}
+         const result = await ordersCollection.find(orderEmail).toArray()
+         res.send(result)
+    })
+
+    app.post("/order", async(req, res) => {
+        const order = req.body
+        console.log(order)
+        const result = await ordersCollection.insertOne(order)
+        res.send(result)
+    })
+    
+    app.delete("/order-delete/:id", async(req, res) => {
+         const id = req.params.id
+         const orderDelete = {_id: new ObjectId(id)}
+         const result = await ordersCollection.deleteOne(orderDelete)
+         res.send(result)
     })
 
 
