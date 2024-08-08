@@ -41,6 +41,12 @@ async function run() {
         res.send(result)
     })
 
+    app.post("/shoes", async(req, res) => {
+        const shoes = req.body
+        const result = await shoesCollection.insertOne(shoes)
+        res.send(result)
+    })
+
     // user related
     app.get("/users", async(req, res) => {
         const result = await usersCollection.find().toArray()
@@ -84,6 +90,13 @@ async function run() {
         res.send(result)
     })
 
+    app.get("/order/:id", async(req, res) => {
+       const id = req.params.id
+       const orderId = {_id: new ObjectId(id)}
+       const result = await ordersCollection.findOne(orderId)
+       res.send(result)
+    })
+
     app.get("/order/email/:email", async(req, res) => {
          const email = req.params.email
          const orderEmail = {email: email}
@@ -97,7 +110,7 @@ async function run() {
         const result = await ordersCollection.insertOne(order)
         res.send(result)
     })
-    
+
     app.delete("/order-delete/:id", async(req, res) => {
          const id = req.params.id
          const orderDelete = {_id: new ObjectId(id)}
