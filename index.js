@@ -47,6 +47,29 @@ async function run() {
         res.send(result)
     })
 
+    app.put("/shoes-update/:id", async(req, res) => {
+        const shoes = req.body
+        const id = req.params.id 
+        const shoesId = {_id: new ObjectId(id)}
+        const options = { upsert: true };
+       
+        const updateDoc = {
+          $set:{
+             name: shoes.name,
+             price: shoes.price,
+             image: shoes.image,
+             brand: shoes.brand,
+             description: shoes.description,
+             size: shoes.size,
+             color: shoes.color,
+             category: shoes.category
+          }
+        }
+
+        const result = await shoesCollection.updateOne(shoesId, updateDoc, options)
+        res.send(result)
+    })
+
     app.delete("/shoes-delete/:id", async(req, res) => {
          const id = req.params.id
          const shoesId = {_id: new ObjectId(id)}
