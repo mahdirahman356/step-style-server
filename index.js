@@ -22,7 +22,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const database = client.db("ShoesDB");
     const shoesCollection = database.collection("shoes");
@@ -45,6 +45,13 @@ async function run() {
         const shoes = req.body
         const result = await shoesCollection.insertOne(shoes)
         res.send(result)
+    })
+
+    app.delete("/shoes-delete/:id", async(req, res) => {
+         const id = req.params.id
+         const shoesId = {_id: new ObjectId(id)}
+         const result = await shoesCollection.deleteOne(shoesId)
+         res.send(result)
     })
 
     // user related
