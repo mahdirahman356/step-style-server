@@ -4,6 +4,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 require('dotenv').config()
 const port = process.env.PORT || 5000;
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+
 
 app.use(cors())
 app.use(express.json())
@@ -28,6 +30,7 @@ async function run() {
     const shoesCollection = database.collection("shoes");
     const usersCollection = database.collection("users");
     const ordersCollection = database.collection("orders");
+    const paymentsCollection = database.collection("payments");
     
     // Shoes related
     app.get("/shoes", async(req, res) => {
@@ -146,6 +149,43 @@ async function run() {
          const orderDelete = {_id: new ObjectId(id)}
          const result = await ordersCollection.deleteOne(orderDelete)
          res.send(result)
+    })
+
+    app.patch("/order-isPaid/:id", async(req, res) => {
+        const id = req.params.id
+        const orderId = {_id: new ObjectId(id)}
+        const paid = req.body
+        const updateDoc = {
+          $set:{
+            isPaid: paid.isPaid
+          }
+        }
+        const result = await ordersCollection.updateOne(orderId, updateDoc)
+        res.send(result)
+    })
+
+    // payments
+
+    app.post("/payments", async(req, res) => {
+        const payment = req.body
+        const result = await paymentsCollection.insertOne(payment)
+        res.send(result)
+    })
+
+    // payment intent
+
+    app.post("/create-payment-intent", async(req, res) => {
+        const {price} = req.body 
+        const amount = parseInt(price * 100)
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+          payment_method_types: ["card"],
+        })
+        res.send({
+          clientSecret: paymentIntent.client_secret,
+        });
     })
 
 
