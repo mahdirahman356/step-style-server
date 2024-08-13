@@ -166,6 +166,18 @@ async function run() {
 
     // payments
 
+    app.get("/payments", async(req, res) => {
+        const result = await paymentsCollection.find().toArray()
+        res.send(result)
+    })
+
+    app.get("/payments/:email", async(req, res) => {
+       const email = req.params.email
+       const payments = {email: email}
+       const result = await paymentsCollection.find(payments).toArray()
+       res.send(result)
+    })
+
     app.post("/payments", async(req, res) => {
         const payment = req.body
         const result = await paymentsCollection.insertOne(payment)
