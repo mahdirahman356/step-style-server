@@ -164,6 +164,20 @@ async function run() {
         res.send(result)
     })
 
+    app.patch("/order-confirm/:id", async(req, res) => {
+         const id = req.params.id
+         const orderId = {_id: new ObjectId(id)}
+         const confirm = req.body;
+         const updateDoc = {
+          $set:{
+            confirmation: confirm.confirmation
+          }
+         }
+
+         const result = await ordersCollection.updateOne(orderId, updateDoc)
+         res.send(result)
+    })
+
     // payments
 
     app.get("/payments", async(req, res) => {
