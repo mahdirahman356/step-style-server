@@ -33,6 +33,35 @@ async function run() {
     const ordersCollection = database.collection("orders");
     const paymentsCollection = database.collection("payments");
     
+    // middlewares
+    const verifyToken = (req, res, next) => {
+      if (!req.headers.authorisation) {
+        return res.status(401).send({ message: "unauthorise access" })
+      }
+      const token = req.headers.authorisation.split(' ')[1]
+      console.log("from verify token", token)
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: "unauthorise access" })
+        }
+        req.decoded = decoded
+        next()
+      })
+
+    }
+
+
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email
+      const query = { email: email }
+      const user = await usersCollection.findOne(query)
+      console.log(user)
+      const isAdmin = user?.role === "admin"
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" })
+      }
+      next()
+    }
     
     // jwt
     app.post("/jwt", async(req, res) => {
@@ -66,20 +95,20 @@ async function run() {
       const result = await shoesCollection.find(query).toArray()
       res.send(result)
     })
-    app.get("/shoes-details/:id", async (req, res) => {
+    app.get("/shoes-details/:id",  async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await shoesCollection.find(query).toArray()
       res.send(result)
     })
 
-    app.post("/shoes", async (req, res) => {
+    app.post("/shoes", verifyToken, verifyAdmin,  async (req, res) => {
       const shoes = req.body
       const result = await shoesCollection.insertOne(shoes)
       res.send(result)
     })
 
-    app.put("/shoes-update/:id", async (req, res) => {
+    app.put("/shoes-update/:id", verifyToken, verifyAdmin,  async (req, res) => {
       const shoes = req.body
       const id = req.params.id
       const shoesId = { _id: new ObjectId(id) }
@@ -102,7 +131,7 @@ async function run() {
       res.send(result)
     })
 
-    app.delete("/shoes-delete/:id", async (req, res) => {
+    app.delete("/shoes-delete/:id", verifyToken, verifyAdmin,  async (req, res) => {
       const id = req.params.id
       const shoesId = { _id: new ObjectId(id) }
       const result = await shoesCollection.deleteOne(shoesId)
@@ -110,9 +139,24 @@ async function run() {
     })
 
     // user related
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray()
       res.send(result)
+    })
+
+    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+      const email = req.params.email
+      console.log(req.decoded, "decoded")
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "forbidden access" })
+      }
+      const query = { email: email }
+      const user = await usersCollection.findOne(query)
+      let admin = false
+      if (user) {
+        admin = user?.role === "admin"
+      }
+      res.send({ admin })
     })
 
     app.get("/users/email/:email", async (req, res) => {
@@ -135,7 +179,7 @@ async function run() {
       }
     })
 
-    app.put('/user-update/:id', async (req, res) => {
+    app.put('/user-update/:id', verifyToken,  async (req, res) => {
       const user = req.body
       const id = req.params.id
       const filter = { _id: new ObjectId(id) }
@@ -153,7 +197,7 @@ async function run() {
       res.send(result)
     })
 
-    app.patch("/user-admin/:id", async(req, res) => {
+    app.patch("/user-admin/:id", verifyToken, verifyAdmin,  async(req, res) => {
           const id = req.params.id
           const userId = {_id: new ObjectId(id)}
           const updateDoc = {
@@ -167,40 +211,40 @@ async function run() {
 
 
     // Order related
-    app.get("/order", async (req, res) => {
+    app.get("/order", verifyToken, verifyAdmin,  async (req, res) => {
       const result = await ordersCollection.find().toArray()
       res.send(result)
     })
 
-    app.get("/order/:id", async (req, res) => {
+    app.get("/order/:id", verifyToken, verifyAdmin,  async (req, res) => {
       const id = req.params.id
       const orderId = { _id: new ObjectId(id) }
       const result = await ordersCollection.findOne(orderId)
       res.send(result)
     })
 
-    app.get("/order/email/:email", async (req, res) => {
+    app.get("/order/email/:email",  async (req, res) => {
       const email = req.params.email
       const orderEmail = { email: email }
       const result = await ordersCollection.find(orderEmail).toArray()
       res.send(result)
     })
 
-    app.post("/order", async (req, res) => {
+    app.post("/order", verifyToken,  async (req, res) => {
       const order = req.body
       console.log(order)
       const result = await ordersCollection.insertOne(order)
       res.send(result)
     })
 
-    app.delete("/order-delete/:id", async (req, res) => {
+    app.delete("/order-delete/:id", verifyToken,  async (req, res) => {
       const id = req.params.id
       const orderDelete = { _id: new ObjectId(id) }
       const result = await ordersCollection.deleteOne(orderDelete)
       res.send(result)
     })
 
-    app.patch("/order-isPaid/:id", async (req, res) => {
+    app.patch("/order-isPaid/:id", verifyToken,  async (req, res) => {
       const id = req.params.id
       const orderId = { _id: new ObjectId(id) }
       const paid = req.body
@@ -213,7 +257,7 @@ async function run() {
       res.send(result)
     })
 
-    app.patch("/order-confirm/:id", async (req, res) => {
+    app.patch("/order-confirm/:id", verifyToken, verifyAdmin,  async (req, res) => {
       const id = req.params.id
       const orderId = { _id: new ObjectId(id) }
       const confirm = req.body;
@@ -229,19 +273,19 @@ async function run() {
 
     // payments
 
-    app.get("/payments", async (req, res) => {
+    app.get("/payments",  async (req, res) => {
       const result = await paymentsCollection.find().toArray()
       res.send(result)
     })
 
-    app.get("/payments/:email", async (req, res) => {
+    app.get("/payments/:email", verifyToken,  async (req, res) => {
       const email = req.params.email
       const payments = { email: email }
       const result = await paymentsCollection.find(payments).toArray()
       res.send(result)
     })
 
-    app.post("/payments", async (req, res) => {
+    app.post("/payments", verifyToken,  async (req, res) => {
       const payment = req.body
       const result = await paymentsCollection.insertOne(payment)
       res.send(result)
