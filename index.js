@@ -307,6 +307,21 @@ async function run() {
       });
     })
 
+    // stats
+    app.get("/admin-stats", async(req, res) => {
+         const users = await usersCollection.estimatedDocumentCount()
+         const products = await shoesCollection.estimatedDocumentCount()
+         const orders = await ordersCollection.estimatedDocumentCount()
+         const payments = await paymentsCollection.find().toArray()
+         const revenue = payments.reduce((total, payment) => total + payment.productPrice, 0)
+         res.send({
+          users,
+          products,
+          orders,
+          revenue
+         })
+    })
+
 
 
     // Send a ping to confirm a successful connection
